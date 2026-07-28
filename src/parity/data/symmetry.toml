@@ -1,0 +1,132 @@
+# symmetry.toml — Residue symmetry-equivalence tables
+#
+# These atom pairs are related by a genuine symmetry of the residue topology
+# (180-degree ring flips or resonance-equivalent terminal groups).  Swapping
+# their labels produces the exact same molecule; such a swap must be reported
+# as DiffLevel.NAMING, never as DiffLevel.CHEMISTRY or DiffLevel.GEOMETRY.
+#
+# This table is dialect-independent.  All atom names are in canonical PDB v3
+# form.  See PARITY_SPEC.md §9.2 for the correctness requirements.
+#
+# Canonicalization rule (§9.2):
+#   For each symmetry set, choose the labeling deterministically from
+#   geometry.  The specific geometric criterion is implemented in stereo.py
+#   and must never change between releases without a version bump.
+#   Current criterion: order the two swappable atoms by their distance to
+#   a fixed reference atom in the residue; break ties by coordinate
+#   lexicographic order (x, then y, then z).
+#   This rule is applied identically to both input files so that even if
+#   both files have "wrong" labels, they agree with each other.
+#
+# Schema:
+#   [[sets]]
+#   residues  — list of canonical residue names this set applies to
+#   atoms     — list of swappable pairs [[a1, a2], [b1, b2], ...]
+#               Each inner list is a pair of equivalent atom names.
+#   coupled   — bool: must ALL pairs be swapped together, or can each pair
+#               be swapped independently?
+#   reference — the atom used as the geometric reference for canonical ordering
+#               (the atom whose distance to each swappable atom breaks the tie)
+#   note      — human-readable explanation
+#
+# Source / authority:
+#   - IUPAC-IUB nomenclature for amino acids:
+#     "Nomenclature and Symbolism for Amino Acids and Peptides"
+#     Biochemistry 1984, 23, 2153-2159
+#   - PDB remediation documentation (2007): https://www.wwpdb.org/documentation/remediation
+#   - Richardson & Richardson (1989) "The de novo design of protein structures"
+#     (canonical assignment of PHE/TYR ring atoms)
+#   - Berman et al. (2000) The Protein Data Bank. Nucleic Acids Res. 28:235-242.
+#
+# PHE/TYR note:
+#   The aromatic ring of PHE and TYR has a C2 symmetry axis through CG and CZ.
+#   A 180-degree flip swaps CD1↔CD2 AND CE1↔CE2 simultaneously.
+#   These two swaps are COUPLED — flipping only CD1↔CD2 without also flipping
+#   CE1↔CE2 produces a chemically impossible structure.
+#   Both pairs must be swapped together; coupled = true.
+#   Reference atom: CG (the branching point; both CD1 and CD2 attach to it).
+#
+# ASP/GLU note:
+#   The terminal carboxylate group has resonance symmetry (both C=O bonds
+#   are equivalent in the ground state).  OD1↔OD2 (ASP) and OE1↔OE2 (GLU)
+#   are freely interchangeable without any coupled partner.
+#   Reference atom: CG for ASP, CD for GLU.
+#
+# ARG note:
+#   The guanidinium group at the end of arginine has C2v symmetry.
+#   NH1 and NH2 are equivalent by the resonance symmetry of the guanidinium.
+#   They swap independently.
+#   Reference atom: CZ.
+
+# ---------------------------------------------------------------------------
+# Aromatic ring flips
+# ---------------------------------------------------------------------------
+
+[[sets]]
+residues  = ["PHE", "TYR"]
+atoms     = [["CD1", "CD2"], ["CE1", "CE2"]]
+coupled   = true
+reference = "CG"
+note      = """180-degree aromatic ring flip about the CG-CZ axis.
+CD1/CD2 and CE1/CE2 must be swapped as a coupled set.
+Flipping only one pair produces an impossible geometry."""
+
+# ---------------------------------------------------------------------------
+# Carboxylate resonance symmetry
+# ---------------------------------------------------------------------------
+
+[[sets]]
+residues  = ["ASP"]
+atoms     = [["OD1", "OD2"]]
+coupled   = false
+reference = "CG"
+note      = """Aspartate carboxylate resonance.
+OD1 and OD2 are equivalent by carboxylate resonance symmetry.
+They can be swapped independently."""
+
+[[sets]]
+residues  = ["GLU"]
+atoms     = [["OE1", "OE2"]]
+coupled   = false
+reference = "CD"
+note      = """Glutamate carboxylate resonance.
+OE1 and OE2 are equivalent by carboxylate resonance symmetry.
+They can be swapped independently."""
+
+# ---------------------------------------------------------------------------
+# Guanidinium resonance symmetry
+# ---------------------------------------------------------------------------
+
+[[sets]]
+residues  = ["ARG"]
+atoms     = [["NH1", "NH2"]]
+coupled   = false
+reference = "CZ"
+note      = """Arginine guanidinium resonance.
+NH1 and NH2 are equivalent by the C2v symmetry of the guanidinium group.
+They can be swapped independently."""
+
+# ---------------------------------------------------------------------------
+# Notes on residues NOT included here:
+#
+# ASN (ND2/OD1):
+#   ASN has OD1 (carbonyl oxygen) and ND2 (amide nitrogen).  These are NOT
+#   symmetric — they are chemically distinct (O vs N) and cannot be swapped.
+#   Confusing them is a labeling error, not a symmetry operation.
+#   Do NOT add ASN here.
+#
+# GLN (NE2/OE1):
+#   Same reasoning as ASN.  OE1 and NE2 are chemically distinct.
+#
+# HIS (ND1/NE2):
+#   In free histidine the ring has approximate C2 symmetry, but the two
+#   nitrogens are chemically distinguishable (by connectivity to CE1/CD2)
+#   and the tautomer state breaks the symmetry.  Do NOT add HIS here.
+#   Tautomer detection (HID vs HIE) is a CHEMISTRY difference; see spec §9.4.
+#
+# VAL (CG1/CG2) and LEU (CD1/CD2):
+#   These are PROCHIRAL, not symmetric.  CG1/CG2 of VAL are distinguishable
+#   by pro-R/pro-S rules applied to coordinates.  Swapping them is a real
+#   geometric / stereochemical error that must be detected and reported.
+#   They belong in stereo.py (§9.3), NOT here.
+# ---------------------------------------------------------------------------

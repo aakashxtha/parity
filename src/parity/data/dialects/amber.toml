@@ -1,0 +1,395 @@
+# amber.toml — AMBER / tleap / ff14SB naming dialect
+#
+# Sources:
+#   - AMBER ff14SB protein force field (Maier et al. 2015, JCTC)
+#     https://doi.org/10.1021/acs.jctc.5b00255
+#   - AMBER20 tleap / LEaP manual
+#     https://ambermd.org/tutorials/basic/tutorial1/index.php
+#   - AMBER nucleic acid force fields: ff99bsc0, OL15 (DNA), OL3 (RNA)
+#     https://ambermd.org/AmberModels.php
+#   - AmberTools source: $AMBERHOME/dat/leap/lib/ (amino12.lib, nucleic12.lib)
+#   - AMBER residue naming conventions:
+#     https://ambermd.org/tutorials/basic/tutorial1/section1.htm
+#
+# Key differences from PDB v3:
+#   1. Histidine tautomers use HID/HIE/HIP instead of just HIS.
+#   2. CYX = disulfide-bonded cysteine; CYM = deprotonated cysteine.
+#   3. Protonated acid forms: ASH (protonated ASP), GLH (protonated GLU).
+#   4. LYN = neutral (deprotonated) lysine.
+#   5. Water: WAT (modern tleap), T3P (older tleap / some ports).
+#   6. Modern ff14SB uses PDB v3 atom names (OP1/OP2, HB2/HB3) for most atoms.
+#      Older AMBER force fields (ff99SB, ff03) used O1P/O2P.
+#
+# Prochiral hydrogen convention:
+#   AMBER ff14SB uses PDB v3 HB2/HB3 numbering for beta-methylene hydrogens.
+#   This matches PDB v3 exactly; no prochiral remapping needed for modern AMBER.
+#   For older AMBER files (pre-ff14SB) that used HB1/HB2, treat as pdbv2 or
+#   add version-specific markers.
+
+[meta]
+name        = "amber"
+description = "AMBER / tleap / ff14SB naming conventions"
+reference   = "https://ambermd.org/AmberModels.php"
+
+# ---------------------------------------------------------------------------
+# Residue name mappings: AMBER name -> canonical PDB v3 identity
+# ---------------------------------------------------------------------------
+
+# --- Histidine tautomers ---
+# AMBER HID = delta-protonated (proton on Nδ1; lone pair on Nε2)
+# Equivalent to CHARMM HSD.
+[residues.HID]
+canonical    = "HIS"
+protonation  = "delta"
+modification = ""
+
+# AMBER HIE = epsilon-protonated (proton on Nε2; lone pair on Nδ1)
+# Equivalent to CHARMM HSE.
+[residues.HIE]
+canonical    = "HIS"
+protonation  = "epsilon"
+modification = ""
+
+# AMBER HIP = doubly protonated histidinium (cationic)
+# Equivalent to CHARMM HSP.
+[residues.HIP]
+canonical    = "HIS"
+protonation  = "both"
+modification = ""
+
+# Older AMBER tleap used these longer names (some tutorials / old files)
+[residues.HISD]
+canonical    = "HIS"
+protonation  = "delta"
+modification = ""
+
+[residues.HISE]
+canonical    = "HIS"
+protonation  = "epsilon"
+modification = ""
+
+[residues.HISH]
+canonical    = "HIS"
+protonation  = "both"
+modification = ""
+
+# --- Cysteine variants ---
+# CYX = cysteine in a disulfide bond (SG is bonded to another SG)
+# CHEMISTRY difference: real chemical modification (bond formed)
+[residues.CYX]
+canonical    = "CYS"
+protonation  = ""
+modification = "disulfide"
+
+# CYM = deprotonated (thiolate) cysteine; negatively charged at pH ~7
+# CHEMISTRY difference: loss of proton changes charge state
+[residues.CYM]
+canonical    = "CYS"
+protonation  = "deprotonated"
+modification = ""
+
+# --- Protonated acid forms ---
+# ASH = protonated aspartate (aspartic acid); net charge 0 instead of -1
+# CHEMISTRY difference: protonation state is a real chemical difference
+[residues.ASH]
+canonical    = "ASP"
+protonation  = "protonated"
+modification = ""
+
+# ASPP is another name used in some AMBER patches
+[residues.ASPP]
+canonical    = "ASP"
+protonation  = "protonated"
+modification = ""
+
+# GLH = protonated glutamate (glutamic acid); net charge 0 instead of -1
+[residues.GLH]
+canonical    = "GLU"
+protonation  = "protonated"
+modification = ""
+
+# GLUP — another name used in some AMBER patches
+[residues.GLUP]
+canonical    = "GLU"
+protonation  = "protonated"
+modification = ""
+
+# --- Neutral lysine ---
+# LYN = neutral (Nζ deprotonated) lysine; net charge 0 instead of +1
+[residues.LYN]
+canonical    = "LYS"
+protonation  = "neutral"
+modification = ""
+
+# LSN — alternate name for neutral lysine in some AMBER parameter sets
+[residues.LSN]
+canonical    = "LYS"
+protonation  = "neutral"
+modification = ""
+
+# --- Water ---
+# WAT is the primary AMBER / tleap water residue name
+[residues.WAT]
+canonical    = "HOH"
+protonation  = ""
+modification = ""
+
+# T3P — used in older tleap files and some AMBER ports
+[residues.T3P]
+canonical    = "HOH"
+protonation  = ""
+modification = ""
+
+# SOL — used in GROMACS-AMBER hybrid files and some tleap outputs
+[residues.SOL]
+canonical    = "HOH"
+protonation  = ""
+modification = ""
+
+# --- Selenomethionine (CHEMISTRY difference, not naming) ---
+# MSE is occasionally found in AMBER prep files (from PDB deposition structures)
+[residues.MSE]
+canonical    = "MET"
+protonation  = ""
+modification = "selenomethionine"
+
+# ---------------------------------------------------------------------------
+# Atom name mappings
+#
+# Modern AMBER (ff14SB and newer) uses PDB v3 atom names for almost everything.
+# Exceptions:
+#   - Older AMBER force fields (ff99SB, ff03, pre-2010) used O1P/O2P for
+#     phosphate oxygens.  These are listed as conditional/legacy mappings.
+#   - The global table covers both old and new via marker detection weight.
+#
+# [atoms.global]  — applies to every residue
+# [atoms.RESNAME] — per-residue overrides (canonical residue name as key)
+# ---------------------------------------------------------------------------
+
+# Legacy phosphate naming from older AMBER parameter sets (pre-ff14SB).
+# Modern ff14SB already uses OP1/OP2 — these map older files.
+# (Conditional: only applies when O1P/O2P markers score higher than OP1/OP2)
+[atoms.global]
+"O1P" = "OP1"
+"O2P" = "OP2"
+
+# Note: AMBER does NOT use OT1/OT2 for C-terminal atoms.
+# AMBER uses O and OXT, which are already the PDB v3 canonical names.
+# No mapping needed.
+
+# Note: ILE in AMBER uses CD in older files; ff14SB uses CD1.
+# We include a per-residue mapping for ILE CD for older AMBER compatibility.
+[atoms.ILE]
+"CD" = "CD1"
+
+# ---------------------------------------------------------------------------
+# Prochiral pairs (spec §9.3)
+#
+# Modern AMBER (ff14SB) uses HB2/HB3 for beta-methylene hydrogens, matching
+# PDB v3 exactly.  However, some older AMBER parameter sets (e.g. ff99 with
+# hydrogen generation tools like REDUCE) could produce HB1/HB2.
+#
+# We declare the prochiral pairs for completeness so that stereo.py can
+# validate assignments even when the names already match PDB v3.
+# The geometry-based resolver runs regardless, confirming correctness.
+# ---------------------------------------------------------------------------
+
+# Beta-methylene hydrogens — AMBER ff14SB already uses HB2/HB3 (PDB v3 style)
+# These entries declare the pairing for the geometry validator in stereo.py.
+[[prochiral]]
+residues  = ["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS",
+             "LEU", "LYS", "MET", "PHE", "SER", "TRP", "TYR"]
+center    = "CB"
+dialect   = ["HB2", "HB3"]
+canonical = ["HB2", "HB3"]
+reference = ["CA", "N"]
+
+# ILE CG1 methylene
+[[prochiral]]
+residues  = ["ILE"]
+center    = "CG1"
+dialect   = ["HG12", "HG13"]
+canonical = ["HG12", "HG13"]
+reference = ["CB", "CA"]
+
+# LEU gamma-methylene
+[[prochiral]]
+residues  = ["LEU"]
+center    = "CG"
+dialect   = ["HG2", "HG3"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# LYS gamma, delta, epsilon methylenes
+[[prochiral]]
+residues  = ["LYS"]
+center    = "CG"
+dialect   = ["HG2", "HG3"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+[[prochiral]]
+residues  = ["LYS"]
+center    = "CD"
+dialect   = ["HD2", "HD3"]
+canonical = ["HD2", "HD3"]
+reference = ["CG", "CB"]
+
+[[prochiral]]
+residues  = ["LYS"]
+center    = "CE"
+dialect   = ["HE2", "HE3"]
+canonical = ["HE2", "HE3"]
+reference = ["CD", "CG"]
+
+# ARG gamma-methylene and delta-methylene
+[[prochiral]]
+residues  = ["ARG"]
+center    = "CG"
+dialect   = ["HG2", "HG3"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+[[prochiral]]
+residues  = ["ARG"]
+center    = "CD"
+dialect   = ["HD2", "HD3"]
+canonical = ["HD2", "HD3"]
+reference = ["CG", "CB"]
+
+# GLU / GLN gamma-methylene
+[[prochiral]]
+residues  = ["GLU", "GLN"]
+center    = "CG"
+dialect   = ["HG2", "HG3"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# PRO beta, gamma, delta methylenes
+[[prochiral]]
+residues  = ["PRO"]
+center    = "CB"
+dialect   = ["HB2", "HB3"]
+canonical = ["HB2", "HB3"]
+reference = ["CA", "N"]
+
+[[prochiral]]
+residues  = ["PRO"]
+center    = "CG"
+dialect   = ["HG2", "HG3"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+[[prochiral]]
+residues  = ["PRO"]
+center    = "CD"
+dialect   = ["HD2", "HD3"]
+canonical = ["HD2", "HD3"]
+reference = ["CG", "CB"]
+
+# GLY alpha-methylene
+[[prochiral]]
+residues  = ["GLY"]
+center    = "CA"
+dialect   = ["HA2", "HA3"]
+canonical = ["HA2", "HA3"]
+reference = ["N", "C"]
+
+# MET gamma-methylene
+[[prochiral]]
+residues  = ["MET"]
+center    = "CG"
+dialect   = ["HG2", "HG3"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# ---------------------------------------------------------------------------
+# Detection markers
+# ---------------------------------------------------------------------------
+
+# Histidine tautomer names — unique to AMBER
+[[markers]]
+kind   = "residue_name"
+value  = "HID"
+weight = 10
+
+[[markers]]
+kind   = "residue_name"
+value  = "HIE"
+weight = 10
+
+[[markers]]
+kind   = "residue_name"
+value  = "HIP"
+weight = 10
+
+# Disulfide / deprotonated cysteine — unique to AMBER
+[[markers]]
+kind   = "residue_name"
+value  = "CYX"
+weight = 10
+
+[[markers]]
+kind   = "residue_name"
+value  = "CYM"
+weight = 9
+
+# Protonated acid forms — unique to AMBER
+[[markers]]
+kind   = "residue_name"
+value  = "ASH"
+weight = 9
+
+[[markers]]
+kind   = "residue_name"
+value  = "GLH"
+weight = 9
+
+# Neutral lysine — unique to AMBER
+[[markers]]
+kind   = "residue_name"
+value  = "LYN"
+weight = 8
+
+[[markers]]
+kind   = "residue_name"
+value  = "LSN"
+weight = 7
+
+# Water naming
+[[markers]]
+kind   = "residue_name"
+value  = "WAT"
+weight = 6
+
+[[markers]]
+kind   = "residue_name"
+value  = "T3P"
+weight = 7
+
+# Older AMBER phosphate naming (if present, file is older AMBER + non-PDB)
+[[markers]]
+kind   = "atom_name"
+value  = "O1P"
+weight = 4
+
+[[markers]]
+kind   = "atom_name"
+value  = "O2P"
+weight = 4
+
+# Older tleap histidine names
+[[markers]]
+kind   = "residue_name"
+value  = "HISD"
+weight = 8
+
+[[markers]]
+kind   = "residue_name"
+value  = "HISE"
+weight = 8
+
+[[markers]]
+kind   = "residue_name"
+value  = "HISH"
+weight = 8

@@ -1,0 +1,164 @@
+# pdbv3.toml — PDB format v3.0 canonical reference dialect
+#
+# PDB v3 IS the canonical form; all other dialects map to and from these names.
+# No residue or atom mappings are needed here — this file exists for two
+# purposes only:
+#   1. Detection markers: things that prove a file uses PDB v3 naming.
+#   2. Reference lists: the authoritative set of standard residue codes and
+#      the expected heavy-atom complements used for missing-atom detection.
+#
+# Source: wwPDB Chemical Component Dictionary (CCD) and
+#         PDB File Format v3.30 (2012), https://www.wwpdb.org/documentation/file-format
+# Atom names verified against:
+#   - CCD standard residue definitions (components.cif)
+#   - IUPAC-IUB nomenclature for amino acids and nucleotides
+
+[meta]
+name        = "pdbv3"
+description = "PDB format v3.0 — the canonical reference dialect"
+reference   = "https://www.wwpdb.org/about/policies"
+
+# ---------------------------------------------------------------------------
+# Standard residues
+# These need no mapping — they ARE the canonical names.
+# Listed for reference and for missing-atom detection tables.
+# ---------------------------------------------------------------------------
+
+[residues]
+# Standard amino acids (all 20)
+standard_amino_acids = [
+    "ALA", "ARG", "ASN", "ASP", "CYS",
+    "GLN", "GLU", "GLY", "HIS", "ILE",
+    "LEU", "LYS", "MET", "PHE", "PRO",
+    "SER", "THR", "TRP", "TYR", "VAL",
+]
+
+# Standard DNA nucleotides
+standard_dna = ["DA", "DC", "DG", "DT"]
+
+# Standard RNA nucleotides
+standard_rna = ["A", "C", "G", "U"]
+
+# Solvent and ions (canonical names)
+solvent = ["HOH"]
+common_ions = ["ZN", "CA", "MG", "NA", "CL", "K", "FE", "MN", "CU", "NI", "CO"]
+
+# Common ligands / cofactors (for inventory; not exhaustive)
+common_ligands = ["HEM", "ATP", "ADP", "GDP", "GTP", "NAD", "FAD", "FMN", "FE2", "SF4"]
+
+# ---------------------------------------------------------------------------
+# Expected heavy-atom sets per residue (PDB v3 names)
+# Used by `check` for missing-atom detection (spec §7.1).
+# Backbone atoms (N, CA, C, O) are common to all standard amino acids.
+# OXT is the C-terminal carboxylate oxygen (present only on the last residue).
+# Source: CCD standard_components.cif, verified 2025.
+# ---------------------------------------------------------------------------
+
+[heavy_atoms]
+
+# Backbone atoms shared by all standard amino acids
+backbone = ["N", "CA", "C", "O"]
+
+# Per-residue sidechain heavy atoms
+ALA = ["CB"]
+ARG = ["CB", "CG", "CD", "NE", "CZ", "NH1", "NH2"]
+ASN = ["CB", "CG", "OD1", "ND2"]
+ASP = ["CB", "CG", "OD1", "OD2"]
+CYS = ["CB", "SG"]
+GLN = ["CB", "CG", "CD", "OE1", "NE2"]
+GLU = ["CB", "CG", "CD", "OE1", "OE2"]
+GLY = []   # no sidechain beyond backbone
+HIS = ["CB", "CG", "ND1", "CD2", "CE1", "NE2"]
+ILE = ["CB", "CG1", "CG2", "CD1"]
+LEU = ["CB", "CG", "CD1", "CD2"]
+LYS = ["CB", "CG", "CD", "CE", "NZ"]
+MET = ["CB", "CG", "SD", "CE"]
+PHE = ["CB", "CG", "CD1", "CD2", "CE1", "CE2", "CZ"]
+PRO = ["CB", "CG", "CD"]
+SER = ["CB", "OG"]
+THR = ["CB", "OG1", "CG2"]
+TRP = ["CB", "CG", "CD1", "CD2", "NE1", "CE2", "CE3", "CZ2", "CZ3", "CH2"]
+TYR = ["CB", "CG", "CD1", "CD2", "CE1", "CE2", "CZ", "OH"]
+VAL = ["CB", "CG1", "CG2"]
+
+# DNA heavy atoms (phosphate + sugar + base)
+# Phosphate group: P, OP1, OP2, O5', O3'
+# Sugar: C5', C4', O4', C3', C2', C1'
+DA = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "C1'",
+      "N9", "C8", "N7", "C5", "C6", "N6", "N1", "C2", "N3", "C4"]
+DC = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "C1'",
+      "N1", "C2", "O2", "N3", "C4", "N4", "C5", "C6"]
+DG = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "C1'",
+      "N9", "C8", "N7", "C5", "C6", "O6", "N1", "C2", "N2", "N3", "C4"]
+DT = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "C1'",
+      "N1", "C2", "O2", "N3", "C4", "O4", "C5", "C7", "C6"]
+
+# RNA heavy atoms (same as DNA but with O2' on sugar)
+A  = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "O2'", "C1'",
+      "N9", "C8", "N7", "C5", "C6", "N6", "N1", "C2", "N3", "C4"]
+C  = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "O2'", "C1'",
+      "N1", "C2", "O2", "N3", "C4", "N4", "C5", "C6"]
+G  = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "O2'", "C1'",
+      "N9", "C8", "N7", "C5", "C6", "O6", "N1", "C2", "N2", "N3", "C4"]
+U  = ["P", "OP1", "OP2", "O5'", "C5'", "C4'", "O4'", "C3'", "O3'", "C2'", "O2'", "C1'",
+      "N1", "C2", "O2", "N3", "C4", "O4", "C5", "C6"]
+
+# ---------------------------------------------------------------------------
+# Detection markers
+#
+# Evidence that a file uses PDB v3 naming conventions.
+# These are atoms/residues whose names changed between v2 and v3, or that
+# are definitively PDB v3 (not AMBER/CHARMM variants).
+#
+# Weights:
+#   10  — name is unique to PDB v3 and appears in virtually every protein
+#   6-8 — strong but requires nucleic acid / terminal residues to be present
+#   3   — weaker evidence (e.g. HIS could also be partially converted)
+# ---------------------------------------------------------------------------
+
+# OP1/OP2 replaced O1P/O2P in v3; decisive when nucleic acids are present
+[[markers]]
+kind   = "atom_name"
+value  = "OP1"
+weight = 5
+
+[[markers]]
+kind   = "atom_name"
+value  = "OP2"
+weight = 5
+
+# OXT is the v3 name for the C-terminal carboxylate oxygen (was OT2 in CHARMM)
+[[markers]]
+kind   = "atom_name"
+value  = "OXT"
+weight = 6
+
+# CD1 on ILE is the v3 name (was plain CD in older CHARMM/v2)
+[[markers]]
+kind    = "atom_in_residue"
+residue = "ILE"
+value   = "CD1"
+weight  = 4
+
+# HIS without HSD/HSE/HSP or HID/HIE/HIP suffix → PDB v3 (histidine not renamed)
+[[markers]]
+kind   = "residue_name"
+value  = "HIS"
+weight = 3
+
+# HOH is the PDB v3 canonical water name
+[[markers]]
+kind   = "residue_name"
+value  = "HOH"
+weight = 2
+
+# HB2/HB3 numbering for beta methylene hydrogens is PDB v3 convention
+[[markers]]
+kind   = "atom_name"
+value  = "HB2"
+weight = 3
+
+[[markers]]
+kind   = "atom_name"
+value  = "HB3"
+weight = 3

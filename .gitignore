@@ -1,0 +1,21 @@
+# Spec — internal, not for public repo
+PARITY_SPEC.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Env
+.env
+.venv/
+venv/
+
+# pytest
+.pytest_cache/
+
+# macOS
+.DS_Store

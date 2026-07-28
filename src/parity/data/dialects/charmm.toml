@@ -1,0 +1,367 @@
+# charmm.toml — CHARMM36 / psfgen / CHARMM-GUI naming dialect
+#
+# Sources:
+#   - CHARMM36 force field parameter files (toppar_c36_jul22.tgz)
+#     https://mackerell.umaryland.edu/charmm_ff.shtml#charmm
+#   - CHARMM-GUI (https://www.charmm-gui.org/) PDB output conventions
+#   - psfgen user manual: https://www.ks.uiuc.edu/Research/vmd/plugins/psfgen/
+#   - top_all36_prot.rtf (CHARMM36 protein topology file)
+#   - top_all36_na.rtf   (CHARMM36 nucleic acid topology file)
+#   - top_all36_water.rtf
+#
+# Prochiral hydrogen mapping reference (Q1 in spec §14):
+#   BMRB atom nomenclature table (https://bmrb.io/ref_info/atom_nom.tbl)
+#   IUPAC-IUB nomenclature for amino acids (Biochemistry 1984, 23, 2153-2159)
+#   CHARMM uses HB1/HB2 where PDB v3 uses HB2/HB3.  The physical assignment
+#   (which is pro-R, which is pro-S) is geometry-dependent; the dialect table
+#   declares the name correspondence only.  stereo.py resolves the actual
+#   stereospecific identity from coordinates.
+
+[meta]
+name        = "charmm"
+description = "CHARMM36 / psfgen / CHARMM-GUI naming conventions"
+reference   = "https://mackerell.umaryland.edu/charmm_ff.shtml#charmm"
+
+# ---------------------------------------------------------------------------
+# Residue name mappings: CHARMM name -> canonical PDB v3 identity
+#
+# Schema per residue:
+#   canonical      — PDB v3 three-letter code
+#   protonation    — tautomer / charge state ('' when not applicable)
+#   modification   — real chemical modification ('' when standard)
+#
+# protonation values must be consistent with amber.toml (same vocabulary):
+#   "delta"        — proton on N-delta (Nδ1) of histidine imidazole
+#   "epsilon"      — proton on N-epsilon (Nε2) of histidine imidazole
+#   "both"         — doubly protonated histidine (cationic)
+#   "protonated"   — generic protonated acid (ASH, GLH)
+#   "neutral"      — neutral base (LYN)
+#   "deprotonated" — deprotonated thiol (CYM)
+#   ""             — standard; protonation not specified
+# ---------------------------------------------------------------------------
+
+# --- Histidine tautomers ---
+# CHARMM HSD = delta-protonated (proton on Nδ1, lone pair on Nε2)
+[residues.HSD]
+canonical    = "HIS"
+protonation  = "delta"
+modification = ""
+
+# CHARMM HSE = epsilon-protonated (proton on Nε2, lone pair on Nδ1)
+[residues.HSE]
+canonical    = "HIS"
+protonation  = "epsilon"
+modification = ""
+
+# CHARMM HSP = doubly protonated (cationic histidinium)
+[residues.HSP]
+canonical    = "HIS"
+protonation  = "both"
+modification = ""
+
+# --- Water ---
+# CHARMM TIP3 water model (3-point)
+[residues.TIP3]
+canonical    = "HOH"
+protonation  = ""
+modification = ""
+
+# Alternate CHARMM-GUI water name
+[residues.TIP3P]
+canonical    = "HOH"
+protonation  = ""
+modification = ""
+
+# --- Cysteine variants ---
+# CYS1 — free (reduced) cysteine (used in some older CHARMM topologies)
+[residues.CYS1]
+canonical    = "CYS"
+protonation  = ""
+modification = ""
+
+# CYS2 — disulfide-bonded cysteine (oxidized)
+[residues.CYS2]
+canonical    = "CYS"
+protonation  = ""
+modification = "disulfide"
+
+# --- Heme ---
+# CHARMM HEME residue name; maps to PDB HETATM record HEM
+[residues.HEME]
+canonical    = "HEM"
+protonation  = ""
+modification = ""
+
+# --- Selenomethionine (CHEMISTRY difference, not naming) ---
+# MSE is a real chemical variant: Se replaces S.  Mapped here so the dialect
+# loader knows about it, but the diff engine must classify it as CHEMISTRY.
+[residues.MSE]
+canonical    = "MET"
+protonation  = ""
+modification = "selenomethionine"
+
+# ---------------------------------------------------------------------------
+# Atom name mappings
+#
+# [atoms.global]  — applies to every residue; per-residue tables override
+# [atoms.RESNAME] — per-residue overrides (use CANONICAL residue name as key)
+#
+# Phosphate naming (spec §14 Q2):
+#   CHARMM36 nucleic acid topology (top_all36_na.rtf) uses O1P / O2P.
+#   These map to PDB v3 OP1 / OP2.
+#   CHARMM-GUI outputs in PDB v3 style (OP1/OP2) when producing PDB files for
+#   deposition, but the internal CHARMM topology files retain O1P/O2P.
+#   We treat O1P/O2P as the authoritative CHARMM atom names here.
+# ---------------------------------------------------------------------------
+
+[atoms.global]
+# Phosphate oxygens (CHARMM → PDB v3)
+"O1P" = "OP1"
+"O2P" = "OP2"
+
+# C-terminal oxygen atoms
+# CHARMM OT1 is the main-chain carbonyl oxygen at the C-terminus (= PDB O)
+# CHARMM OT2 is the extra carboxylate oxygen at the C-terminus (= PDB OXT)
+"OT1" = "O"
+"OT2" = "OXT"
+
+# Per-residue overrides
+[atoms.ILE]
+# CHARMM ILE uses plain "CD"; PDB v3 names it "CD1"
+# (the CHARMM topology has only one delta carbon for ILE; the other branch is CG2)
+"CD" = "CD1"
+
+# ---------------------------------------------------------------------------
+# Prochiral pairs (spec §9.3)
+#
+# These pairs must NOT be mapped as plain strings.  The resolver in stereo.py
+# uses geometry (signed scalar triple product) to assign pro-R / pro-S and
+# then maps to the canonical PDB v3 name.
+#
+# Name correspondence (not stereospecific assignment — that is geometry-based):
+#   CHARMM HB1/HB2 correspond positionally to PDB v3 HB2/HB3.
+#   The actual pro-R/pro-S pairing requires coordinates; see stereo.py.
+#
+# Reference for CHARMM hydrogen numbering:
+#   top_all36_prot.rtf: beta-methylene groups are named HB1, HB2
+#   PDB v3 (IUPAC): beta-methylene groups are named HB2, HB3
+#   BMRB atom nomenclature table confirms this offset.
+#
+# [[prochiral]] entries:
+#   residues  — list of residue canonical names, or ["*"] for all
+#   center    — the prochiral carbon
+#   dialect   — names in THIS (CHARMM) dialect, in order [H_a, H_b]
+#   canonical — corresponding PDB v3 names, in order [H_a_v3, H_b_v3]
+#   reference — the two distinct substituents used to define the orientation
+#               (X and Y in spec §9.3); must be unambiguous atom names
+# ---------------------------------------------------------------------------
+
+# Beta-methylene hydrogens (all residues with CB, except GLY/PRO/ALA which lack HB pair)
+[[prochiral]]
+residues  = ["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS",
+             "LEU", "LYS", "MET", "PHE", "SER", "TRP", "TYR"]
+center    = "CB"
+dialect   = ["HB1", "HB2"]
+canonical = ["HB2", "HB3"]
+reference = ["CA", "N"]
+
+# ILE beta methylene: CG1 arm has two hydrogens (HG11, HG12 in CHARMM)
+[[prochiral]]
+residues  = ["ILE"]
+center    = "CG1"
+dialect   = ["HG11", "HG12"]
+canonical = ["HG12", "HG13"]
+reference = ["CB", "CA"]
+
+# LEU gamma-methylene (HG1/HG2 in CHARMM → HG2/HG3 in PDB v3)
+[[prochiral]]
+residues  = ["LEU"]
+center    = "CG"
+dialect   = ["HG1", "HG2"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# LYS gamma-methylene
+[[prochiral]]
+residues  = ["LYS"]
+center    = "CG"
+dialect   = ["HG1", "HG2"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# LYS delta-methylene
+[[prochiral]]
+residues  = ["LYS"]
+center    = "CD"
+dialect   = ["HD1", "HD2"]
+canonical = ["HD2", "HD3"]
+reference = ["CG", "CB"]
+
+# LYS epsilon-methylene
+[[prochiral]]
+residues  = ["LYS"]
+center    = "CE"
+dialect   = ["HE1", "HE2"]
+canonical = ["HE2", "HE3"]
+reference = ["CD", "CG"]
+
+# ARG beta (covered by global above), gamma-methylene
+[[prochiral]]
+residues  = ["ARG"]
+center    = "CG"
+dialect   = ["HG1", "HG2"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# ARG delta-methylene
+[[prochiral]]
+residues  = ["ARG"]
+center    = "CD"
+dialect   = ["HD1", "HD2"]
+canonical = ["HD2", "HD3"]
+reference = ["CG", "CB"]
+
+# GLU gamma-methylene
+[[prochiral]]
+residues  = ["GLU"]
+center    = "CG"
+dialect   = ["HG1", "HG2"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# GLN gamma-methylene
+[[prochiral]]
+residues  = ["GLN"]
+center    = "CG"
+dialect   = ["HG1", "HG2"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# PRO beta-methylene
+[[prochiral]]
+residues  = ["PRO"]
+center    = "CB"
+dialect   = ["HB1", "HB2"]
+canonical = ["HB2", "HB3"]
+reference = ["CA", "N"]
+
+# PRO gamma-methylene
+[[prochiral]]
+residues  = ["PRO"]
+center    = "CG"
+dialect   = ["HG1", "HG2"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# PRO delta-methylene
+[[prochiral]]
+residues  = ["PRO"]
+center    = "CD"
+dialect   = ["HD1", "HD2"]
+canonical = ["HD2", "HD3"]
+reference = ["CG", "CB"]
+
+# GLY alpha-methylene (HA1/HA2 in CHARMM → HA2/HA3 in PDB v3)
+[[prochiral]]
+residues  = ["GLY"]
+center    = "CA"
+dialect   = ["HA1", "HA2"]
+canonical = ["HA2", "HA3"]
+reference = ["N", "C"]
+
+# MET gamma-methylene
+[[prochiral]]
+residues  = ["MET"]
+center    = "CG"
+dialect   = ["HG1", "HG2"]
+canonical = ["HG2", "HG3"]
+reference = ["CB", "CA"]
+
+# ---------------------------------------------------------------------------
+# Detection markers
+#
+# Weights encode how strongly a marker's presence implies CHARMM naming.
+# High weight (8-10): names unique to CHARMM; not found in AMBER or PDB files.
+# Medium weight (4-6): common in CHARMM but could appear in older files.
+# Low weight (2-3): suggestive but not definitive.
+# ---------------------------------------------------------------------------
+
+# Histidine tautomer names — unique to CHARMM
+[[markers]]
+kind   = "residue_name"
+value  = "HSD"
+weight = 10
+
+[[markers]]
+kind   = "residue_name"
+value  = "HSE"
+weight = 10
+
+[[markers]]
+kind   = "residue_name"
+value  = "HSP"
+weight = 10
+
+# TIP3 water — CHARMM-specific (AMBER uses WAT)
+[[markers]]
+kind   = "residue_name"
+value  = "TIP3"
+weight = 8
+
+[[markers]]
+kind   = "residue_name"
+value  = "TIP3P"
+weight = 7
+
+# C-terminal atom names unique to CHARMM
+[[markers]]
+kind   = "atom_name"
+value  = "OT1"
+weight = 8
+
+[[markers]]
+kind   = "atom_name"
+value  = "OT2"
+weight = 8
+
+# Phosphate naming (CHARMM nucleic acids use O1P/O2P)
+[[markers]]
+kind   = "atom_name"
+value  = "O1P"
+weight = 6
+
+[[markers]]
+kind   = "atom_name"
+value  = "O2P"
+weight = 6
+
+# Beta-methylene HB1 naming: CHARMM uses HB1 where PDB v3 uses HB2
+# (moderate weight — could be from old AMBER files or other tools)
+[[markers]]
+kind   = "atom_name"
+value  = "HB1"
+weight = 4
+
+# ILE CD (without the "1" suffix) is a CHARMM-specific name
+[[markers]]
+kind    = "atom_in_residue"
+residue = "ILE"
+value   = "CD"
+weight  = 8
+
+# Cysteine variants unique to CHARMM topology
+[[markers]]
+kind   = "residue_name"
+value  = "CYS1"
+weight = 7
+
+[[markers]]
+kind   = "residue_name"
+value  = "CYS2"
+weight = 7
+
+# HEME residue name (CHARMM uses HEME; PDB uses HEM)
+[[markers]]
+kind   = "residue_name"
+value  = "HEME"
+weight = 6

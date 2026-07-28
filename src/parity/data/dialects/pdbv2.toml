@@ -1,0 +1,182 @@
+# pdbv2.toml — Legacy PDB v2 / pre-remediation naming dialect
+#
+# PDB format v2 (used before the 2007 PDB remediation project) differs from
+# PDB v3 primarily in:
+#   1. Phosphate oxygen names: O1P/O2P → OP1/OP2 (renamed in v3 remediation)
+#   2. ILE delta carbon: CD → CD1 (renamed in v3)
+#   3. Nucleotide atom names: some primes lacked the apostrophe (C5* vs C5')
+#   4. Terminal oxygen: OT vs OXT (some older depositions)
+#
+# The 2007 remediation (wwPDB) changed all PDB entries to v3 naming, but many
+# structure files distributed by labs, deposited before 2007, or produced by
+# older software (XPLOR, CNS, early AMBER/CHARMM converters) still carry v2
+# names.  GROMACS topology preparation tools also output O1P/O2P in some
+# versions.
+#
+# Sources:
+#   - PDB remediation details: https://www.wwpdb.org/documentation/remediation
+#   - "Remediation of the Protein Data Bank Archive" (Henrick et al. 2008)
+#     Nucleic Acids Research 36(Database issue):D426-D433
+#     https://doi.org/10.1093/nar/gkm1021
+#   - XPLOR-NIH and CNS atom name tables (legacy molecular dynamics / NMR)
+#   - IUPAC-IUB recommendations for nucleotide nomenclature (1970 / 1983)
+
+[meta]
+name        = "pdbv2"
+description = "Legacy PDB v2 / pre-2007-remediation naming conventions"
+reference   = "https://www.wwpdb.org/documentation/remediation"
+
+# ---------------------------------------------------------------------------
+# Residue name mappings
+#
+# Most residue names are identical between v2 and v3.  The few that differ
+# are listed here.
+# ---------------------------------------------------------------------------
+
+# Histidine in v2 was commonly just HIS (undistinguished tautomer).
+# Retained as a pass-through; it IS already canonical.
+# No entry needed for HIS (it maps to itself).
+
+# Some v2 depositions used longer or alternate water names.
+[residues.HOH]
+canonical    = "HOH"
+protonation  = ""
+modification = ""
+
+# DOD (deuterated water) sometimes found in neutron diffraction structures
+[residues.DOD]
+canonical    = "HOH"
+protonation  = ""
+modification = ""
+
+# WAT was used in some older PDB depositions (before standardizing to HOH)
+[residues.WAT]
+canonical    = "HOH"
+protonation  = ""
+modification = ""
+
+# Selenomethionine — present in v2 files too (CHEMISTRY difference)
+[residues.MSE]
+canonical    = "MET"
+protonation  = ""
+modification = "selenomethionine"
+
+# ---------------------------------------------------------------------------
+# Atom name mappings
+# ---------------------------------------------------------------------------
+
+[atoms.global]
+# Primary difference: phosphate oxygens
+# PDB v2: O1P, O2P → PDB v3: OP1, OP2
+"O1P" = "OP1"
+"O2P" = "OP2"
+
+# Nucleotide sugar atoms: some v2 files used * instead of ' for prime notation
+# (C5* → C5', O4* → O4', etc.)
+# These cannot be represented as static keys due to the special characters;
+# the resolver handles them with a general prime-conversion rule.
+# They are listed here for documentation and testing reference only.
+# "C1*" = "C1'"   # handled in resolver
+# "C2*" = "C2'"
+# "C3*" = "C3'"
+# "C4*" = "C4'"
+# "C5*" = "C5'"
+# "O2*" = "O2'"
+# "O3*" = "O3'"
+# "O4*" = "O4'"
+# "O5*" = "O5'"
+
+# C-terminal atom: some v2 / XPLOR-NIH files used OT for the extra oxygen
+# (In v3: OXT)
+"OT"  = "OXT"
+
+# Some older depositions (pre-remediation) used OT2 (like CHARMM)
+"OT2" = "OXT"
+"OT1" = "O"
+
+# Per-residue overrides
+[atoms.ILE]
+# PDB v2: ILE CD → PDB v3: ILE CD1
+# The delta carbon of isoleucine was renamed CD → CD1 in the remediation.
+"CD" = "CD1"
+
+# ---------------------------------------------------------------------------
+# Prochiral pairs
+#
+# PDB v2 used the same HB2/HB3 numbering as PDB v3 for beta-methylene
+# hydrogens in most cases (this convention predates v3).  The prochiral
+# geometry validation still applies.
+# ---------------------------------------------------------------------------
+
+[[prochiral]]
+residues  = ["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS",
+             "LEU", "LYS", "MET", "PHE", "SER", "TRP", "TYR"]
+center    = "CB"
+dialect   = ["HB2", "HB3"]
+canonical = ["HB2", "HB3"]
+reference = ["CA", "N"]
+
+[[prochiral]]
+residues  = ["GLY"]
+center    = "CA"
+dialect   = ["HA2", "HA3"]
+canonical = ["HA2", "HA3"]
+reference = ["N", "C"]
+
+# ---------------------------------------------------------------------------
+# Detection markers
+#
+# PDB v2 markers are identical atoms/residues that appear in v2 but were
+# renamed in v3.  The key signals are the phosphate oxygens and the ILE CD.
+# Note: these same names appear in CHARMM files, so O1P/O2P alone is not
+# definitive for v2.  The combination of O1P/O2P + HIS (not HSD/HSE) +
+# standard PDB residues (not AMBER/CHARMM variants) strongly suggests v2.
+# ---------------------------------------------------------------------------
+
+# Phosphate oxygens renamed in v3 remediation — strong signal when present
+[[markers]]
+kind   = "atom_name"
+value  = "O1P"
+weight = 8
+
+[[markers]]
+kind   = "atom_name"
+value  = "O2P"
+weight = 8
+
+# ILE CD (no suffix) renamed to CD1 in v3
+[[markers]]
+kind    = "atom_in_residue"
+residue = "ILE"
+value   = "CD"
+weight  = 6
+
+# OT terminal oxygen — rare but seen in old XPLOR/CNS output
+[[markers]]
+kind   = "atom_name"
+value  = "OT"
+weight = 5
+
+# Star-notation nucleotide atoms (C5* etc.) — very strong v2 signal
+# kind = "atom_name" with asterisk; the detector must handle special chars
+[[markers]]
+kind   = "atom_name"
+value  = "C5*"
+weight = 9
+
+[[markers]]
+kind   = "atom_name"
+value  = "O4*"
+weight = 9
+
+[[markers]]
+kind   = "atom_name"
+value  = "C1*"
+weight = 9
+
+# HIS without tautomer suffix in a v2 file is not distinctive (v3 also uses HIS)
+# but the combination of HIS + O1P/O2P is suggestive of v2
+[[markers]]
+kind   = "residue_name"
+value  = "HIS"
+weight = 1
