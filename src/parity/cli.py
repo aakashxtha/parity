@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Optional
 
 import typer
-from typing_extensions import Annotated
+from typing import Annotated
 
 app = typer.Typer(
     name="parity",
